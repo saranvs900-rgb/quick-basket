@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/cart_provider.dart';
 import '../../theme/app_theme.dart';
 import '../orders/order_confirmation_screen.dart';
@@ -19,7 +18,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _placeOrder() async {
     final cart = context.read<CartProvider>();
-    final user = FirebaseAuth.instance.currentUser;
+    final user = Supabase.instance.client.auth.currentUser;
     if (user == null || cart.itemCount == 0) return;
     if (_addressController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -31,54 +30,51 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _loading = true);
 
     try {
-      final orderRef = FirebaseFirestore.instance.collection('orders').doc();
+      final supabase = Supabase.instance.client;
+
+      // 1. Create order
+      final order = await supabase.from('orders').insert({
+        'user_id': user.id,
+        'status': 'Order Placed',
+        'total_amount': cart.subtotal,
+        'delivery_fee': cart.deliveryFee,
+        'discount': 0,
+        'final_amount': cart.grandTotal,
+        'address': {'fullAddress': _addressController.text.trim()},
+      }).select().single();
+
+      final orderId = order['id'] as String;
+
+      // 2. Create order items
       final items = cart.items.values
           .map((e) => {
-                'productId': e.productId,
+                'order_id': orderId,
+                'product_id': e.productId,
                 'name': e.name,
                 'price': e.price,
                 'quantity': e.quantity,
-                'imageUrl': e.imageUrl,
+                'image_url': e.imageUrl,
               })
           .toList();
 
-      await orderRef.set({
-        'userId': user.uid,
-        'items': items,
-        'totalAmount': cart.subtotal,
-        'deliveryFee': cart.deliveryFee,
-        'discount': 0,
-        'finalAmount': cart.grandTotal,
-        'status': 'Order Placed',
-        'address': {
-          'fullAddress': _addressController.text.trim(),
-        },
-        'paymentId': null,
-        'deliveryPartnerId': null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'statusHistory': [
-          {
-            'status': 'Order Placed',
-            'at': FieldValue.serverTimestamp(),
-          }
-        ],
-      });
+      await supabase.from('order_items').insert(items);
 
       cart.clear();
 
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => OrderConfirmationScreen(orderId: orderRef.id),
+          builder: (_) => OrderConfirmationScreen(orderId: orderId),
         ),
         (route) => route.isFirst,
       );
     } catch (e) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to place order: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to place order: $e')),
+        );
+      }
     }
   }
 
@@ -91,10 +87,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Delivery Address',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('Delivery Address',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
             controller: _addressController,
@@ -104,10 +98,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Payment Method',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('Payment Method',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Card(
             child: ListTile(
@@ -116,7 +108,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               trailing: Radio(value: true, groupValue: true, onChanged: (_) {}),
             ),
           ),
-          // Placeholder for Razorpay
           Card(
             child: ListTile(
               leading: const Icon(Icons.payment, color: Colors.blue),
@@ -161,14 +152,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       const Text('To Pay',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(
-                        '₹${cart.grandTotal.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: AppColors.primary,
-                        ),
-                      ),
+                      Text('₹${cart.grandTotal.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: AppColors.primary)),
                     ],
                   ),
                 ],

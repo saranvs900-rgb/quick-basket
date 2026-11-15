@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import 'order_tracking_screen.dart';
 
@@ -9,24 +8,25 @@ class OrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
       return const Scaffold(body: Center(child: Text('Please login')));
     }
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Orders')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('orders')
-            .where('userId', isEqualTo: uid)
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+      body: FutureBuilder(
+        future: Supabase.instance.client
+            .from('orders')
+            .select()
+            .eq('user_id', user.id)
+            .order('created_at', ascending: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          final docs = List<Map<String, dynamic>>.from(snapshot.data ?? []);
+          if (docs.isEmpty) {
             return const Center(
               child: Text('No orders yet',
                   style: TextStyle(color: AppColors.textSecondary)),
@@ -34,28 +34,26 @@ class OrdersScreen extends StatelessWidget {
           }
           return ListView.builder(
             padding: const EdgeInsets.all(12),
-            itemCount: snapshot.data!.docs.length,
+            itemCount: docs.length,
             itemBuilder: (_, i) {
-              final doc = snapshot.data!.docs[i];
-              final data = doc.data() as Map<String, dynamic>;
+              final data = docs[i];
+              final id = data['id'] as String;
               final status = data['status'] ?? 'Order Placed';
-              final amount = (data['finalAmount'] ?? 0).toDouble();
+              final amount = (data['final_amount'] ?? 0).toDouble();
 
               return Card(
                 child: ListTile(
-                  title: Text('Order #${doc.id.substring(0, 8).toUpperCase()}'),
+                  title: Text(
+                      'Order #${id.length > 8 ? id.substring(0, 8).toUpperCase() : id}'),
                   subtitle: Text(status),
-                  trailing: Text(
-                    '₹${amount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
+                  trailing: Text('₹${amount.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary)),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OrderTrackingScreen(orderId: doc.id),
+                      builder: (_) => OrderTrackingScreen(orderId: id),
                     ),
                   ),
                 ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../theme/app_theme.dart';
@@ -11,29 +11,32 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final supabase = Supabase.instance.client;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Product Details')),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .doc(productId)
-            .snapshots(),
+      body: FutureBuilder(
+        future: supabase
+            .from('products')
+            .select()
+            .eq('id', productId)
+            .maybeSingle(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.data!.exists) {
+          final data = snapshot.data;
+          if (data == null) {
             return const Center(child: Text('Product not found'));
           }
-          final data = snapshot.data!.data() as Map<String, dynamic>;
+
           final name = data['name'] ?? '';
           final price = (data['price'] ?? 0).toDouble();
           final mrp = (data['mrp'] ?? 0).toDouble();
           final unit = data['unit'] ?? '';
           final description = data['description'] ?? '';
-          final imageUrl = (data['imageUrls'] as List?)?.isNotEmpty == true
-              ? data['imageUrls'][0] as String
-              : null;
+          final images = data['image_urls'] as List? ?? [];
+          final imageUrl = images.isNotEmpty ? images[0] as String : null;
 
           return Column(
             children: [
@@ -52,13 +55,9 @@ class ProductDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          Text(name,
+                              style: const TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
                           Text(unit,
                               style: const TextStyle(
@@ -66,32 +65,24 @@ class ProductDetailScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              Text(
-                                '₹${price.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
+                              Text('₹${price.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary)),
                               if (mrp > price) ...[
                                 const SizedBox(width: 10),
-                                Text(
-                                  '₹${mrp.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    decoration: TextDecoration.lineThrough,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
+                                Text('₹${mrp.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                        decoration: TextDecoration.lineThrough,
+                                        color: AppColors.textSecondary)),
                               ],
                             ],
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Description',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 16),
-                          ),
+                          const Text('Description',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 16)),
                           const SizedBox(height: 6),
                           Text(
                             description.isEmpty

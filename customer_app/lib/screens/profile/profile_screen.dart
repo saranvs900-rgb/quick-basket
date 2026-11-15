@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../auth/login_screen.dart';
@@ -10,7 +10,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -21,14 +21,13 @@ class ProfileScreen extends StatelessWidget {
             radius: 40,
             backgroundColor: AppColors.primaryLight,
             child: Text(
-              (user?.phoneNumber ?? 'U').substring(
-                  (user?.phoneNumber?.length ?? 1) - 1),
+              (user?.phone ?? 'U').characters.last,
               style: const TextStyle(fontSize: 28, color: AppColors.primary),
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            user?.phoneNumber ?? 'Guest',
+            user?.phone ?? user?.email ?? 'Guest',
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
@@ -39,7 +38,8 @@ class ProfileScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Support: support@quickbasket.app')),
+                const SnackBar(
+                    content: Text('Support: support@quickbasket.app')),
               );
             },
           ),

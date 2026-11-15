@@ -5,14 +5,9 @@ import '../../theme/app_theme.dart';
 import '../home/main_shell.dart';
 
 class OtpScreen extends StatefulWidget {
-  final String verificationId;
   final String phone;
 
-  const OtpScreen({
-    super.key,
-    required this.verificationId,
-    required this.phone,
-  });
+  const OtpScreen({super.key, required this.phone});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -26,9 +21,9 @@ class _OtpScreenState extends State<OtpScreen> {
     if (_otpController.text.length < 6) return;
     setState(() => _loading = true);
     try {
-      await context.read<AuthProvider>().verifyOtp(
-            verificationId: widget.verificationId,
-            smsCode: _otpController.text.trim(),
+      await context.read<AuthProvider>().verifyPhoneOtp(
+            phone: widget.phone,
+            token: _otpController.text.trim(),
           );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
@@ -37,9 +32,11 @@ class _OtpScreenState extends State<OtpScreen> {
       );
     } catch (e) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid OTP: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid OTP: $e')),
+        );
+      }
     }
   }
 

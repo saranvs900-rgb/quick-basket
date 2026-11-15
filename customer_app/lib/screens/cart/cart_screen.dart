@@ -18,8 +18,7 @@ class CartScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.shopping_cart_outlined,
-                      size: 72, color: Colors.grey),
+                  Icon(Icons.shopping_cart_outlined, size: 72, color: Colors.grey),
                   SizedBox(height: 16),
                   Text('Your cart is empty',
                       style: TextStyle(fontSize: 18, color: Colors.grey)),
@@ -101,14 +100,11 @@ class CartScreen extends StatelessWidget {
                           const Text('Total',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text(
-                            '₹${cart.grandTotal.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                          Text('₹${cart.grandTotal.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: AppColors.primary)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -119,8 +115,7 @@ class CartScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const CheckoutScreen(),
-                              ),
+                                  builder: (_) => const CheckoutScreen()),
                             );
                           },
                           child: const Text('Proceed to Checkout'),

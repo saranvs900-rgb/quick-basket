@@ -28,13 +28,12 @@ class OrderConfirmationScreen extends StatelessWidget {
                       size: 64, color: AppColors.success),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Order Placed!',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                ),
+                const Text('Order Placed!',
+                    style:
+                        TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text(
-                  'Order ID: ${orderId.substring(0, 8).toUpperCase()}',
+                  'Order ID: ${orderId.length > 8 ? orderId.substring(0, 8).toUpperCase() : orderId}',
                   style: const TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 12),

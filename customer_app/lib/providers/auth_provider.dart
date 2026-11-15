@@ -1,65 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
 
-  User? get user => _auth.currentUser;
-  bool get isLoggedIn => user != null;
+  Session? get session => _supabase.auth.currentSession;
+  User? get user => _supabase.auth.currentUser;
+  bool get isLoggedIn => session != null;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  AuthProvider() {
+    _supabase.auth.onAuthStateChange.listen((data) {
+      notifyListeners();
+    });
+  }
 
-  Future<void> signInWithPhone({
+  /// Send OTP to phone (E.164 format, e.g. +919876543210)
+  Future<void> signInWithPhone(String phone) async {
+    await _supabase.auth.signInWithOtp(phone: phone);
+  }
+
+  /// Verify the OTP received on phone
+  Future<AuthResponse> verifyPhoneOtp({
     required String phone,
-    required Function(String verificationId) onCodeSent,
-    required Function(String error) onError,
+    required String token,
   }) async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phone,
-      verificationCompleted: (credential) async {
-        await _auth.signInWithCredential(credential);
-        notifyListeners();
-      },
-      verificationFailed: (e) => onError(e.message ?? 'Verification failed'),
-      codeSent: (verificationId, _) => onCodeSent(verificationId),
-      codeAutoRetrievalTimeout: (_) {},
+    final res = await _supabase.auth.verifyOTP(
+      type: OtpType.sms,
+      phone: phone,
+      token: token,
     );
-  }
-
-  Future<UserCredential?> verifyOtp({
-    required String verificationId,
-    required String smsCode,
-  }) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: smsCode,
-    );
-    final result = await _auth.signInWithCredential(credential);
-    await _ensureUserDocument(result.user!);
     notifyListeners();
-    return result;
-  }
-
-  Future<void> _ensureUserDocument(User user) async {
-    final ref = _db.collection('users').doc(user.uid);
-    final snap = await ref.get();
-    if (!snap.exists) {
-      await ref.set({
-        'uid': user.uid,
-        'name': user.displayName ?? '',
-        'email': user.email ?? '',
-        'phone': user.phoneNumber ?? '',
-        'role': 'customer',
-        'createdAt': FieldValue.serverTimestamp(),
-        'fcmTokens': [],
-      });
-    }
+    return res;
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    await _supabase.auth.signOut();
     notifyListeners();
   }
 }

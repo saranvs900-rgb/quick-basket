@@ -25,29 +25,25 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _loading = true);
-    final auth = context.read<AuthProvider>();
-
-    await auth.signInWithPhone(
-      phone: '+91$phone',
-      onCodeSent: (verificationId) {
-        setState(() => _loading = false);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OtpScreen(
-              verificationId: verificationId,
-              phone: '+91$phone',
-            ),
-          ),
-        );
-      },
-      onError: (error) {
-        setState(() => _loading = false);
+    try {
+      final fullPhone = '+91$phone';
+      await context.read<AuthProvider>().signInWithPhone(fullPhone);
+      if (!mounted) return;
+      setState(() => _loading = false);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpScreen(phone: fullPhone),
+        ),
+      );
+    } catch (e) {
+      setState(() => _loading = false);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
+          SnackBar(content: Text('Error: $e')),
         );
-      },
-    );
+      }
+    }
   }
 
   @override

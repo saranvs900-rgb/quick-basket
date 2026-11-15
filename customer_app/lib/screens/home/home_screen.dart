@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_theme.dart';
 import '../product/product_list_screen.dart';
 import '../product/product_detail_screen.dart';
@@ -9,6 +9,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final supabase = Supabase.instance.client;
+
     return Scaffold(
       appBar: AppBar(
         title: const Column(
@@ -21,22 +23,13 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // TODO: open search
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.location_on_outlined),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.location_on_outlined), onPressed: () {}),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Promo banner
           Container(
             margin: const EdgeInsets.all(16),
             height: 140,
@@ -50,66 +43,53 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Get 50% OFF',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'on your first order',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  Text('Get 50% OFF',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold)),
+                  Text('on your first order',
+                      style: TextStyle(color: Colors.white70)),
                 ],
               ),
             ),
           ),
-
-          // Categories
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Shop by Category',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            child: Text('Shop by Category',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           SizedBox(
             height: 110,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('categories')
-                  .orderBy('order')
-                  .snapshots(),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: supabase
+                  .from('categories')
+                  .select()
+                  .eq('is_active', true)
+                  .order('sort_order')
+                  .then((v) => List<Map<String, dynamic>>.from(v)),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final docs = snapshot.data!.docs;
-                if (docs.isEmpty) {
-                  // Fallback static categories
-                  final cats = [
-                    'Fruits',
-                    'Vegetables',
-                    'Dairy',
-                    'Snacks',
-                    'Beverages',
-                    'Rice',
-                    'Personal Care',
-                    'Household',
+                final cats = snapshot.data!;
+                if (cats.isEmpty) {
+                  final fallback = [
+                    'Fruits', 'Vegetables', 'Dairy', 'Snacks',
+                    'Beverages', 'Rice', 'Personal Care', 'Household'
                   ];
                   return ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: cats.length,
+                    itemCount: fallback.length,
                     itemBuilder: (_, i) => _CategoryChip(
-                      name: cats[i],
+                      name: fallback[i],
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ProductListScreen(categoryName: cats[i]),
+                          builder: (_) =>
+                              ProductListScreen(categoryName: fallback[i]),
                         ),
                       ),
                     ),
@@ -118,17 +98,17 @@ class HomeScreen extends StatelessWidget {
                 return ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: docs.length,
+                  itemCount: cats.length,
                   itemBuilder: (_, i) {
-                    final data = docs[i].data() as Map<String, dynamic>;
+                    final c = cats[i];
                     return _CategoryChip(
-                      name: data['name'] ?? '',
+                      name: c['name'] ?? '',
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ProductListScreen(
-                            categoryId: docs[i].id,
-                            categoryName: data['name'],
+                            categoryId: c['id'],
+                            categoryName: c['name'],
                           ),
                         ),
                       ),
@@ -138,23 +118,20 @@ class HomeScreen extends StatelessWidget {
               },
             ),
           ),
-
           const SizedBox(height: 20),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'Popular Products',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            child: Text('Popular Products',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 8),
-
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('products')
-                .where('isActive', isEqualTo: true)
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: supabase
+                .from('products')
+                .select()
+                .eq('is_active', true)
                 .limit(10)
-                .snapshots(),
+                .then((v) => List<Map<String, dynamic>>.from(v)),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return const Padding(
@@ -162,12 +139,12 @@ class HomeScreen extends StatelessWidget {
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
-              final products = snapshot.data!.docs;
+              final products = snapshot.data!;
               if (products.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'No products yet. Add some from Admin Dashboard.',
+                    'No products yet. Add some from Admin or run seed.sql',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
@@ -185,16 +162,15 @@ class HomeScreen extends StatelessWidget {
                 ),
                 itemCount: products.length,
                 itemBuilder: (_, i) {
-                  final data = products[i].data() as Map<String, dynamic>;
+                  final p = products[i];
+                  final images = p['image_urls'] as List? ?? [];
                   return _ProductCard(
-                    id: products[i].id,
-                    name: data['name'] ?? '',
-                    price: (data['price'] ?? 0).toDouble(),
-                    mrp: (data['mrp'] ?? 0).toDouble(),
-                    unit: data['unit'] ?? '',
-                    imageUrl: (data['imageUrls'] as List?)?.isNotEmpty == true
-                        ? data['imageUrls'][0]
-                        : null,
+                    id: p['id'],
+                    name: p['name'] ?? '',
+                    price: (p['price'] ?? 0).toDouble(),
+                    mrp: (p['mrp'] ?? 0).toDouble(),
+                    unit: p['unit'] ?? '',
+                    imageUrl: images.isNotEmpty ? images[0] : null,
                   );
                 },
               );
@@ -209,7 +185,6 @@ class HomeScreen extends StatelessWidget {
 class _CategoryChip extends StatelessWidget {
   final String name;
   final VoidCallback onTap;
-
   const _CategoryChip({required this.name, required this.onTap});
 
   @override
@@ -231,12 +206,10 @@ class _CategoryChip extends StatelessWidget {
               child: const Icon(Icons.category, color: AppColors.primary),
             ),
             const SizedBox(height: 6),
-            Text(
-              name,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            ),
+            Text(name,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -289,38 +262,28 @@ class _ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
+                  Text(name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13)),
                   Text(unit,
                       style: const TextStyle(
                           fontSize: 11, color: AppColors.textSecondary)),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        '₹${price.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
+                      Text('₹${price.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary)),
                       if (mrp > price) ...[
                         const SizedBox(width: 6),
-                        Text(
-                          '₹${mrp.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            decoration: TextDecoration.lineThrough,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                        Text('₹${mrp.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                decoration: TextDecoration.lineThrough,
+                                color: AppColors.textSecondary)),
                       ],
                     ],
                   ),

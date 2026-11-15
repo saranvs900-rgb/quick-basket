@@ -35,9 +35,8 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = context.read<AuthProvider>();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => auth.isLoggedIn
-            ? const MainShell()
-            : const LoginScreen(),
+        builder: (_) =>
+            auth.isLoggedIn ? const MainShell() : const LoginScreen(),
       ),
     );
   }
@@ -84,10 +83,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(height: 8),
               const Text(
                 'Fresh Groceries. Fast Delivery.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ],
           ),
