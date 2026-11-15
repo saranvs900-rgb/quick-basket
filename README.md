@@ -4,7 +4,9 @@
 
 A premium quick-commerce grocery delivery platform inspired by Zepto.
 
-Built with **Flutter** (Customer App + Delivery Partner App + Flutter Web Admin) and **Firebase** (Auth, Firestore, Storage, Cloud Functions).
+**Backend: Supabase** (Auth + PostgreSQL + Storage + Realtime + Edge Functions)
+
+Built with **Flutter** (Customer App + Delivery Partner App + Flutter Web Admin).
 
 ---
 
@@ -15,7 +17,7 @@ Built with **Flutter** (Customer App + Delivery Partner App + Flutter Web Admin)
 | Customer Mobile App | Flutter (Android + iOS) | Scaffold + Core flows |
 | Delivery Partner App | Flutter | Scaffold + Order status |
 | Admin Dashboard | Flutter Web | Scaffold + Analytics |
-| Backend | Firebase Auth + Firestore + Storage + Functions | Configured |
+| Backend | **Supabase** (Auth, Postgres, Storage, Realtime) | Configured |
 | Payments | Razorpay (placeholder) | Ready for keys |
 | Maps | Google Maps (placeholder) | Ready for API key |
 
@@ -27,63 +29,43 @@ Built with **Flutter** (Customer App + Delivery Partner App + Flutter Web Admin)
 quick-basket/
 ├── README.md
 ├── docs/
-│   ├── FIREBASE_SETUP.md
+│   ├── SUPABASE_SETUP.md
 │   ├── INSTALLATION.md
 │   ├── DEPLOYMENT.md
 │   └── DATABASE.md
-├── shared/                          # Shared models, constants, theme
-│   ├── lib/
-│   │   ├── models/
-│   │   ├── theme/
-│   │   ├── constants/
-│   │   └── utils/
-│   └── pubspec.yaml
-├── customer_app/                    # Customer Flutter app
-├── delivery_app/                    # Delivery Partner Flutter app
-├── admin_web/                       # Admin Dashboard (Flutter Web)
-├── functions/                       # Firebase Cloud Functions
-│   ├── src/
-│   └── package.json
-├── firestore.rules
-├── firestore.indexes.json
-├── storage.rules
-└── firebase.json
+├── supabase/
+│   ├── schema.sql          # Full database schema + RLS
+│   └── seed.sql            # Optional sample data
+├── shared/
+├── customer_app/
+├── delivery_app/
+└── admin_web/
 ```
 
 ---
 
-## 🎯 Features Implemented in Scaffold
+## 🎯 Features
 
 ### Customer App
 - Splash + Branding
-- Phone / Email + OTP Auth (Firebase)
-- Location & Address management
+- Phone / Email + OTP Auth (Supabase Auth)
 - Home with categories + banners
-- Product listing & search
-- Product details
+- Product listing, search & details
 - Cart with quantity management
-- Wishlist
-- Checkout flow
-- Order status tracking
-- Order history
-- Profile & Support
+- Checkout + Order placement
+- Live order status tracking (Realtime)
+- Order history & Profile
 
 ### Admin Dashboard
-- Login
-- Dashboard analytics cards
-- Product CRUD (add/edit/delete + image upload)
-- Category management
-- Inventory / stock
-- Orders management + assign delivery partner
-- Coupons
-- Customer list
+- Login (role-based)
+- Dashboard analytics
+- Product CRUD
+- Order management + assign delivery partner
 
 ### Delivery Partner App
 - Login
-- Assigned orders list
-- Accept / Reject
+- Assigned orders
 - Update order status
-- Delivery history & earnings placeholder
 
 ### Order Statuses
 `Order Placed` → `Order Confirmed` → `Preparing Order` → `Ready for Pickup` → `Out for Delivery` → `Delivered` / `Cancelled`
@@ -93,11 +75,15 @@ quick-basket/
 ## 🔧 Technology Stack
 
 - **Frontend**: Flutter 3.x + Dart
-- **State Management**: Provider / Riverpod (recommended)
-- **Backend**: Firebase Authentication, Cloud Firestore, Firebase Storage, Cloud Functions
+- **State Management**: Provider
+- **Backend**: **Supabase**
+  - Auth (Phone OTP + Email)
+  - PostgreSQL database
+  - Row Level Security (RLS)
+  - Storage (product images)
+  - Realtime subscriptions
 - **Payments**: Razorpay
 - **Maps**: Google Maps Flutter
-- **Notifications**: Firebase Cloud Messaging
 
 ---
 
@@ -109,11 +95,9 @@ git clone https://github.com/saranvs900-rgb/quick-basket.git
 cd quick-basket
 ```
 
-2. Follow **docs/FIREBASE_SETUP.md** to create a Firebase project and download config files.
+2. Follow **docs/SUPABASE_SETUP.md** to create a Supabase project and run the schema.
 
 3. Follow **docs/INSTALLATION.md** to run the apps.
-
-4. See **docs/DEPLOYMENT.md** for production builds.
 
 ---
 
@@ -122,30 +106,7 @@ cd quick-basket
 - **Name**: QUICK BASKET
 - **Tagline**: Fresh Groceries. Fast Delivery.
 - **Primary Color**: `#2E7D32` (Green)
-- **Secondary**: White + soft greys
-- **Style**: Clean, rounded cards, premium grocery imagery, bottom navigation
 
 ---
 
-## 🛡️ Security
-
-- Role-based access (customer / admin / delivery_partner)
-- Firestore Security Rules included
-- Server-side price & stock validation recommended via Cloud Functions
-- Payment verification on backend
-
----
-
-## 📝 Next Steps for Full Production
-
-1. Add real product images to Firebase Storage
-2. Complete Razorpay integration + webhook
-3. Google Maps live tracking
-4. FCM push notifications
-5. Cloud Functions for order assignment & stock deduction
-6. Admin reports & charts
-7. Unit + integration tests
-
----
-
-**Made with ❤️ for quick commerce.**
+**Backend migrated from Firebase → Supabase.**

@@ -1,52 +1,37 @@
-# Deployment Guide
+# Deployment Guide (Supabase)
 
-## Android (Customer / Delivery)
+## Flutter Apps
+
+Same as before:
 
 ```bash
-cd customer_app   # or delivery_app
+# Android
 flutter build apk --release
-# or
 flutter build appbundle --release
-```
 
-Upload the AAB to Google Play Console.
-
-## iOS
-
-```bash
+# iOS
 flutter build ipa --release
-```
 
-Upload via Xcode or Transporter to App Store Connect.
-
-## Admin Web (Flutter Web)
-
-```bash
-cd admin_web
+# Web Admin
 flutter build web --release
 ```
 
-Deploy to Firebase Hosting:
+Host the admin `build/web` folder on Vercel, Netlify, or any static host.
+
+## Supabase
+
+- Database and Auth are already hosted by Supabase
+- For production:
+  - Turn on **Email confirmations** if needed
+  - Configure custom SMTP / SMS provider
+  - Enable **Point-in-time recovery** on paid plans
+  - Set up proper CORS and redirect URLs under Authentication → URL Configuration
+
+## Environment variables
+
+Never hard-code the anon key in production builds if the repo is public.
+Use:
 
 ```bash
-firebase init hosting   # point to admin_web/build/web
-firebase deploy --only hosting
+flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
 ```
-
-## Cloud Functions
-
-```bash
-cd functions
-npm install
-firebase deploy --only functions
-```
-
-## Important Production Checklist
-
-- [ ] Replace all test keys (Razorpay, Maps, etc.)
-- [ ] Enable App Check
-- [ ] Review and tighten Firestore rules
-- [ ] Set up proper CORS if needed
-- [ ] Configure custom domain for admin
-- [ ] Enable Crashlytics & Analytics
-- [ ] Set up CI/CD (GitHub Actions recommended)

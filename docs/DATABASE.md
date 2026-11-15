@@ -1,160 +1,59 @@
-# Database Structure (Cloud Firestore)
+# Database Schema (Supabase PostgreSQL)
 
-## Collections
+All tables live in the `public` schema.
 
-### users
-```json
-{
-  "uid": "string",
-  "role": "customer" | "admin" | "delivery_partner",
-  "name": "string",
-  "email": "string",
-  "phone": "string",
-  "photoUrl": "string",
-  "createdAt": "timestamp",
-  "fcmTokens": ["string"]
-}
-```
+## Tables
+
+### profiles
+Extends `auth.users`
+
+| Column     | Type      | Notes                    |
+|------------|-----------|--------------------------|
+| id         | uuid      | PK, references auth.users|
+| full_name  | text      |                          |
+| phone      | text      |                          |
+| email      | text      |                          |
+| role       | text      | customer / admin / delivery_partner |
+| avatar_url | text      |                          |
+| created_at | timestamptz |                        |
 
 ### categories
-```json
-{
-  "id": "string",
-  "name": "Fruits",
-  "imageUrl": "string",
-  "order": 1,
-  "isActive": true
-}
-```
+| id | name | image_url | sort_order | is_active |
 
 ### products
-```json
-{
-  "id": "string",
-  "name": "Fresh Apples",
-  "description": "string",
-  "categoryId": "string",
-  "price": 120.0,
-  "mrp": 150.0,
-  "unit": "1 kg",
-  "imageUrls": ["string"],
-  "stock": 50,
-  "isActive": true,
-  "tags": ["organic", "fresh"],
-  "createdAt": "timestamp"
-}
-```
-
-### carts
-```json
-{
-  "userId": "string",
-  "items": [
-    {
-      "productId": "string",
-      "quantity": 2,
-      "price": 120.0
-    }
-  ],
-  "updatedAt": "timestamp"
-}
-```
+| id | name | description | category_id | price | mrp | unit | image_urls (text[]) | stock | is_active | tags (text[]) | created_at |
 
 ### addresses
-```json
-{
-  "userId": "string",
-  "label": "Home",
-  "fullAddress": "string",
-  "lat": 12.97,
-  "lng": 77.59,
-  "isDefault": true
-}
-```
+| id | user_id | label | full_address | lat | lng | is_default |
+
+### carts / cart_items
+Simple approach: `cart_items` table with user_id + product_id + quantity.
 
 ### orders
-```json
-{
-  "id": "string",
-  "userId": "string",
-  "items": [...],
-  "totalAmount": 450.0,
-  "deliveryFee": 20.0,
-  "discount": 30.0,
-  "finalAmount": 440.0,
-  "status": "Order Placed",
-  "address": { ... },
-  "paymentId": "string",
-  "deliveryPartnerId": "string | null",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "statusHistory": [
-    { "status": "Order Placed", "at": "timestamp" }
-  ]
-}
-```
+| id | user_id | status | total_amount | delivery_fee | discount | final_amount | address (jsonb) | payment_id | delivery_partner_id | created_at | updated_at |
+
+### order_items
+| id | order_id | product_id | name | price | quantity | image_url |
 
 ### delivery_partners
-```json
-{
-  "uid": "string",
-  "name": "string",
-  "phone": "string",
-  "isAvailable": true,
-  "currentLocation": { "lat": 0, "lng": 0 },
-  "vehicle": "Bike",
-  "earnings": 0
-}
-```
-
-### assignments
-```json
-{
-  "orderId": "string",
-  "deliveryPartnerId": "string",
-  "status": "assigned" | "accepted" | "rejected",
-  "assignedAt": "timestamp"
-}
-```
+| id (uuid = profile id) | is_available | vehicle | earnings | current_lat | current_lng |
 
 ### coupons
-```json
-{
-  "code": "FRESH50",
-  "discountType": "percentage" | "flat",
-  "value": 50,
-  "minOrder": 299,
-  "maxDiscount": 100,
-  "expiresAt": "timestamp",
-  "isActive": true
-}
-```
+| id | code | discount_type | value | min_order | max_discount | expires_at | is_active |
 
 ### payments
-```json
-{
-  "orderId": "string",
-  "userId": "string",
-  "amount": 440.0,
-  "razorpayOrderId": "string",
-  "razorpayPaymentId": "string",
-  "status": "success" | "failed",
-  "createdAt": "timestamp"
-}
-```
+| id | order_id | user_id | amount | provider | provider_payment_id | status | created_at |
 
-## Relationships
+## Order Status Values
 
-- `products.categoryId` → `categories.id`
-- `orders.userId` → `users.uid`
-- `orders.deliveryPartnerId` → `delivery_partners.uid`
-- `carts.userId` → `users.uid`
+- Order Placed
+- Order Confirmed
+- Preparing Order
+- Ready for Pickup
+- Out for Delivery
+- Delivered
+- Cancelled
 
-## Indexes
+## Row Level Security
 
-Composite indexes will be required for queries such as:
-- products by categoryId + isActive
-- orders by userId + createdAt
-- orders by status + createdAt
-
-Deploy `firestore.indexes.json`.
+See `supabase/schema.sql` for full RLS policies.
